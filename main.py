@@ -14,7 +14,7 @@ import json
 class SerialMonitor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Advanced Serial Monitor")
+        self.root.title("Advanced Serial Monitor by Science Stories")
         self.root.geometry("1000x700")
         self.root.minsize(800, 600)
 
@@ -188,6 +188,13 @@ class SerialMonitor:
         self.terminal = scrolledtext.ScrolledText(terminal_frame, wrap=tk.WORD, height=20, background="#1E1E1E", foreground="#D4D4D4")
         self.terminal.pack(fill=tk.BOTH, expand=True)
         self.terminal.config(state=tk.DISABLED)
+
+        # Create context menu for copy functionality
+        self.terminal_context_menu = tk.Menu(self.terminal, tearoff=0)
+        self.terminal_context_menu.add_command(label="Copy", command=self.copy_selected_text)
+
+        # Bind right-click to show context menu
+        self.terminal.bind("<Button-3>", self.show_terminal_context_menu)
 
         # Configure terminal text tags for different message types
         self.terminal.tag_configure("normal", foreground="#D4D4D4")
@@ -540,8 +547,40 @@ class SerialMonitor:
         # Auto-scroll if enabled
         if self.auto_scroll:
             self.terminal.see(tk.END)
+            self.terminal.config(state=tk.DISABLED)
+        else:
+            # Keep it in NORMAL state but read-only when auto-scroll is disabled
+            # This allows text selection for copying
+            self.terminal.bind("<Key>", lambda e: "break")
 
-        self.terminal.config(state=tk.DISABLED)
+    def show_terminal_context_menu(self, event):
+        """Show the context menu for the terminal widget"""
+        # Only show the menu if auto-scroll is disabled
+        if not self.auto_scroll:
+            try:
+                self.terminal_context_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                self.terminal_context_menu.grab_release()
+
+    def copy_selected_text(self):
+        """Copy selected text from the terminal to the clipboard"""
+        try:
+            # Temporarily enable the terminal to get the selection
+            self.terminal.config(state=tk.NORMAL)
+
+            # Get the selected text
+            if self.terminal.tag_ranges(tk.SEL):
+                selected_text = self.terminal.get(tk.SEL_FIRST, tk.SEL_LAST)
+
+                # Copy to clipboard
+                self.root.clipboard_clear()
+                self.root.clipboard_append(selected_text)
+                self.status_bar.config(text="Text copied to clipboard")
+            else:
+                self.status_bar.config(text="No text selected")
+        finally:
+            # Restore the terminal state
+            self.terminal.config(state=tk.DISABLED)
 
     def send_data(self):
         """Send data from the input field to the serial port"""
@@ -657,8 +696,14 @@ class SerialMonitor:
             self.append_to_terminal("Auto-scroll enabled\n", "blue")
             # Scroll to the end when enabling auto-scroll
             self.terminal.see(tk.END)
+            # Disable text selection when auto-scroll is enabled
+            self.terminal.config(state=tk.DISABLED)
         else:
-            self.append_to_terminal("Auto-scroll disabled - you can now manually scroll through data\n", "blue")
+            self.append_to_terminal("Auto-scroll disabled - you can now manually scroll through data and copy text\n", "blue")
+            # Enable text selection when auto-scroll is disabled
+            self.terminal.config(state=tk.NORMAL)
+            # Make it read-only but selectable
+            self.terminal.bind("<Key>", lambda e: "break")
 
     def toggle_timestamp(self):
         """Toggle timestamp display in the terminal"""
@@ -869,7 +914,7 @@ class SerialMonitor:
 
     def show_about(self):
         """Show information about the application"""
-        about_text = """Advanced Serial Monitor
+        about_text = """Advanced Serial Monitor by Science Stories
 
 Version 1.0
 
@@ -882,6 +927,7 @@ and embedded hardware specialists. Features include:
 - Multiple display formats (ASCII, HEX)
 - Quick commands
 - Auto-reconnect functionality
+- Text selection and copying
 
 Created with Python and Tkinter.
 """
@@ -909,6 +955,7 @@ Display Options:
 - HEX: Shows hexadecimal values of received data
 - BOTH: Shows both representations
 - Auto-scroll: Toggle to automatically scroll to new data or disable to manually browse through data
+- Copy Text: When auto-scroll is disabled, you can select text and right-click to copy it to clipboard
 
 Data Visualization:
 - Configure data extraction in Tools > Data Plotter
