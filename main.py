@@ -255,7 +255,7 @@ class SerialMonitor:
             btn = ttk.Button(
                 parent, 
                 text=cmd["name"], 
-                command=lambda cmd=cmd["command"]: self.send_quick_command(cmd)
+                command=lambda cmd_param=cmd["command"]: self.send_quick_command(cmd_param)
             )
             btn.grid(row=i//5, column=i%5, padx=5, pady=5, sticky=tk.W)
             self.quick_commands.append({"button": btn, "command": cmd["command"]})
@@ -289,7 +289,7 @@ class SerialMonitor:
                 btn = ttk.Button(
                     parent, 
                     text=name, 
-                    command=lambda cmd=cmd: self.send_quick_command(cmd)
+                    command=lambda cmd_param=cmd: self.send_quick_command(cmd_param)
                 )
                 btn.grid(row=(len(self.quick_commands))//5, column=(len(self.quick_commands))%5, padx=5, pady=5, sticky=tk.W)
                 self.quick_commands.append({"button": btn, "command": cmd})
